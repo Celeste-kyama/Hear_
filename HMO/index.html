@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>HearMeOut</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<link href="hmo.css" rel="stylesheet"/>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="header">
+  <div class="header-brand">
+    <div class="header-logo">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <path d="M7 3C7 3 5 5 5 8C5 11 7 13 7 13" stroke="white" stroke-width="2" stroke-linecap="round"/>
+        <path d="M10 2C10 2 8 4.5 8 8C8 11.5 10 14 10 14" stroke="white" stroke-width="2" stroke-linecap="round"/>
+        <path d="M13 3C13 3 11.5 5.5 11.5 8.5C11.5 11.5 13 13 13 13" stroke="white" stroke-width="2" stroke-linecap="round"/>
+        <path d="M16 5C16 5 15 7 15 9C15 11 16 12 16 12L17 14C17.5 15 17 17 16 18C15 19 13 20 11 20C9 20 7 19.5 6 18" stroke="white" stroke-width="2" stroke-linecap="round"/>
+        <path d="M4 8C4 8 4 6 6 5" stroke="white" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <div>
+      <div class="header-title">Hear Me Out</div>
+      <div class="header-sub">Speech &amp; Sign Language Translator</div>
+    </div>
+  </div>
+  <div class="header-badge">Powered by MediaPipe + sign.mt</div>
+</header>
+
+<!-- TAB BAR -->
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="switchTab('speech2sign', this)">
+    <span class="tab-indicator" style="background:var(--blue-3)"></span>
+    Speech to Sign
+  </button>
+  <button class="tab-btn" onclick="switchTab('sign2speech', this)">
+    <span class="tab-indicator" style="background:var(--lavender-deep)"></span>
+    Sign to Speech
+  </button>
+</div>
+
+<!-- MAIN -->
+<main class="main">
+
+  <!-- ===== TAB 1: SPEECH TO SIGN ===== -->
+  <div class="tab-pane active" id="tab-speech2sign">
+    <div class="section-head">
+      <h2>Speech to Sign Language</h2>
+      <p>Type or speak a phrase and watch it rendered in sign language using the sign.mt animation engine.</p>
+    </div>
+
+    <div class="grid-2" style="margin-bottom:24px;">
+      <!-- INPUT PANEL -->
+      <div class="panel">
+        <div class="panel-label">Input</div>
+        <div class="lang-row">
+          <select class="lang-select" id="spokenLang">
+            <option value="en">English</option>
+            <option value="fr">French</option>
+          </select>
+          <svg class="arrow-sep" width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <path d="M4 10H16M12 6l4 4-4 4" stroke="var(--lavender)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <select class="lang-select" id="signLang">
+            <option value="ase">ASL (American)</option>
+            <option value="bfi">BSL (British)</option>
+            <option value="fsl">FSL (French)</option>
+          </select>
+        </div>
+
+        <textarea class="text-area" id="spokenInput" placeholder="Type your text here, or press the mic button to speak..." rows="4"></textarea>
+
+        <div class="toolbar">
+          <button class="btn-record" id="micBtn" onclick="toggleMic()" title="Record voice">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <rect x="9" y="2" width="6" height="12" rx="3" fill="currentColor"/>
+              <path d="M5 10C5 10 5 17 12 17C19 17 19 10 19 10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <line x1="12" y1="17" x2="12" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <line x1="8" y1="21" x2="16" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </button>
+          <button class="btn-primary" onclick="translateToSign()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path d="M12 3L20 12L12 21M4 12H20" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Translate to Sign
+          </button>
+          <button class="btn-ghost" onclick="clearAll()">Clear</button>
+        </div>
+
+        <div class="divider"></div>
+        <div class="panel-label">Voice Recognition Status</div>
+        <div class="transcript-box empty" id="voiceStatus">Press the mic button and start speaking...</div>
+      </div>
+
+      <!-- SIGN EMBED PANEL -->
+      <div class="panel">
+        <div class="panel-label">Sign Language Output</div>
+        <div class="sign-embed-wrap" id="signEmbedWrap">
+          <div class="sign-placeholder" id="signPlaceholder">
+            <div class="sign-placeholder-icon">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+                <path d="M7 3C7 3 5 5 5 8C5 11 7 13 7 13" stroke="var(--lavender-deep)" stroke-width="2" stroke-linecap="round"/>
+                <path d="M10 2C10 2 8 4.5 8 8C8 11.5 10 14 10 14" stroke="var(--lavender-deep)" stroke-width="2" stroke-linecap="round"/>
+                <path d="M13 3C13 3 11.5 5.5 11.5 8.5C11.5 11.5 13 13 13 13" stroke="var(--lavender-deep)" stroke-width="2" stroke-linecap="round"/>
+                <path d="M16 5L17 14C17.5 15 17 17 16 18C15 19 13 20 11 20C9 20 7 19.5 6 18" stroke="var(--lavender-deep)" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <p>Enter text and click "Translate to Sign" to see the sign language animation</p>
+          </div>
+        </div>
+        <div class="status-strip" id="embedStatus">
+          <div class="dot"></div>
+          <span>Waiting for input</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- SPEED + OPTIONS -->
+    <div class="panel">
+      <div class="panel-label">Playback Options</div>
+      <div style="display:flex;gap:32px;flex-wrap:wrap;align-items:center;">
+        <div style="flex:1;min-width:200px;">
+          <div style="font-size:0.82rem;color:var(--blue-2);margin-bottom:8px;font-weight:500;">Animation Speed</div>
+          <input type="range" min="0.5" max="2" step="0.1" value="1" id="speedSlider" style="width:100%;" oninput="document.getElementById('speedVal').textContent=this.value+'x'"/>
+          <div style="font-size:0.78rem;color:var(--lavender-deep);margin-top:4px;" id="speedVal">1x</div>
+        </div>
+        <div style="flex:1;min-width:200px;">
+          <div style="font-size:0.82rem;color:var(--blue-2);margin-bottom:8px;font-weight:500;">Show Subtitles in Embed</div>
+          <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+            <input type="checkbox" id="showSubtitles" style="width:16px;height:16px;accent-color:var(--blue-2);cursor:pointer;"/>
+            <span style="font-size:0.88rem;color:var(--blue-2);">Display subtitles</span>
+          </label>
+        </div>
+        <div style="flex:1;min-width:200px;">
+          <div style="font-size:0.82rem;color:var(--blue-2);margin-bottom:8px;font-weight:500;">Loop Animation</div>
+          <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+            <input type="checkbox" id="loopAnim" style="width:16px;height:16px;accent-color:var(--blue-2);cursor:pointer;"/>
+            <span style="font-size:0.88rem;color:var(--blue-2);">Loop continuously</span>
+          </label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== TAB 2: SIGN TO SPEECH ===== -->
+  <div class="tab-pane" id="tab-sign2speech">
+    <div class="section-head">
+      <h2>Sign Language to Speech</h2>
+      <p>Use your camera to make ASL hand signs. HMO tracks your hand landmarks in real time and classifies letters into words.</p>
+    </div>
+
+    <div class="grid-2" style="margin-bottom:24px;">
+      <!-- CAMERA PANEL -->
+      <div class="panel">
+        <div class="panel-label">Camera Feed</div>
+        <div class="camera-wrap" id="cameraWrap">
+          <video id="videoEl" autoplay muted playsinline></video>
+          <canvas id="canvasEl"></canvas>
+          <div class="camera-overlay">
+            <div class="cam-badge" id="camBadge">CAMERA OFF</div>
+            <div class="cam-badge live" id="mpBadge" style="display:none;">MP ACTIVE</div>
+          </div>
+        </div>
+        <div class="toolbar" style="margin-top:16px;">
+          <button class="btn-primary" id="startCamBtn" onclick="startCamera()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path d="M15 10L21 7V17L15 14" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <rect x="3" y="7" width="12" height="10" rx="2" stroke="white" stroke-width="2"/>
+            </svg>
+            Start Camera
+          </button>
+          <button class="btn-ghost" id="stopCamBtn" onclick="stopCamera()" style="display:none;">Stop Camera</button>
+          <button class="btn-ghost" onclick="clearBuffer()">Clear Buffer</button>
+        </div>
+        <div class="divider"></div>
+        <!-- HOLD PROGRESS -->
+        <div style="font-size:0.78rem;color:var(--lavender-deep);margin-bottom:4px;letter-spacing:0.06em;text-transform:uppercase;font-weight:600;">Hold Stability</div>
+        <div class="hold-bar-wrap"><div class="hold-bar" id="holdBar"></div></div>
+        <div style="font-size:0.75rem;color:var(--blue-3);margin-top:5px;" id="holdLabel">Hold a sign steady to commit a letter</div>
+      </div>
+
+      <!-- RECOGNITION PANEL -->
+      <div class="panel">
+        <div class="panel-label">Gesture Recognition</div>
+        <div class="gesture-result">
+          <div>
+            <div class="gesture-letter" id="currentLetter">-</div>
+            <div class="gesture-confidence" id="confScore">No hand detected</div>
+          </div>
+          <div class="gesture-word">
+            <div>
+              <div id="currentWordDisplay" style="font-size:1rem;font-weight:600;color:var(--blue-1);min-height:24px;">Current sign word:</div>
+              <div id="bufferedWord" style="font-size:1.5rem;font-family:'DM Serif Display',serif;color:var(--blue-2);margin-top:4px;">&nbsp;</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+        <div class="panel-label">Letter Buffer</div>
+        <div class="letter-buffer" id="letterBuffer"></div>
+        <div class="toolbar" style="margin-top:12px;">
+          <button class="btn-ghost" onclick="commitWord()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+              <path d="M5 12L10 17L19 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Commit Word
+          </button>
+          <button class="btn-ghost" onclick="addSpace()">Space</button>
+          <button class="btn-ghost" onclick="backspace()">Delete Last</button>
+        </div>
+
+        <div class="divider"></div>
+        <div class="panel-label">Full Transcript</div>
+        <div class="transcript-box" id="signTranscript">
+          <span style="color:var(--lavender);font-style:italic;">Recognized text will appear here...</span>
+        </div>
+        <div class="toolbar" style="margin-top:14px;">
+          <button class="btn-primary" onclick="speakTranscript()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path d="M11 5L6 9H2V15H6L11 19V5Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M15.54 8.46C16.4774 9.39764 17.0039 10.6692 17.0039 11.995C17.0039 13.3208 16.4774 14.5924 15.54 15.53" stroke="white" stroke-width="2" stroke-linecap="round"/>
+              <path d="M19.07 5C20.9447 6.87727 21.9979 9.38743 21.9979 12.005C21.9979 14.6226 20.9447 17.1327 19.07 19.01" stroke="white" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            Speak Aloud
+          </button>
+          <button class="btn-ghost" onclick="clearTranscript()">Clear All</button>
+          <select class="lang-select" id="ttsVoice" style="max-width:180px;">
+            <option value="">Default Voice</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+</main>
+<script src="hmo.js"></script>
+</body>
+</html>
